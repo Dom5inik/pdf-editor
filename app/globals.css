@@ -1,0 +1,151 @@
+@import "tailwindcss";
+
+:root {
+  /* Default Palette - Fallback to Light Mode */
+  --app-bg: #FFFFFF;
+  --app-fg: #111111;
+  --app-muted: #555555;
+  --app-border: #E0E0E0;
+
+  /* Shared Accent Colors */
+  --accent-primary: #1E90FF;
+  --accent-hover: #1c86ee;
+  --accent-light: #e0f2fe;
+
+  /* Semantic Colors */
+  --success: #10b981;
+  --error: #ef4444;
+  --warning: #f59e0b;
+}
+
+/* Automatic theme based on system preference */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --app-bg: #0D1117;
+    --app-fg: #F5F5F5;
+    --app-muted: #AAAAAA;
+    --app-border: #1F1F1F;
+    --accent-light: #1e293b;
+  }
+}
+
+/* data-theme support for JS components */
+[data-theme="light"] {
+  --app-bg: #FFFFFF;
+  --app-fg: #111111;
+  --app-muted: #555555;
+  --app-border: #E0E0E0;
+}
+
+[data-theme="dark"] {
+  --app-bg: #0D1117;
+  --app-fg: #F5F5F5;
+  --app-muted: #AAAAAA;
+  --app-border: #1F1F1F;
+}
+
+@theme inline {
+  --color-app-background: var(--app-bg);
+  --color-app-foreground: var(--app-fg);
+  --color-app-muted: var(--app-muted);
+  --color-app-border: var(--app-border);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* Custom Tailwind Colors */
+  --color-accent: var(--accent-primary);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-light: var(--accent-light);
+  --color-accent-dark: #0070e0;
+  --color-success: var(--success);
+  --color-error: var(--error);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--app-bg);
+  color: var(--app-fg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--app-bg);
+  color: var(--app-fg);
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Focus Styles for Accessibility */
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background-color: var(--accent-light);
+  color: var(--app-fg);
+}
+
+/* Scrollbar Styling (Webkit) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--gray-100);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gray-400);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-500);
+}
+
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-track {
+    background: var(--gray-900);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--gray-700);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-600);
+  }
+}

@@ -1,0 +1,246 @@
+'use client';
+
+import { useState, useCallback } from 'react';
+import type { EditorState, EditorTool, PDFPage, EditorElement } from '@/lib/types';
+
+export function usePDFEditor() {
+    const [state, setState] = useState<EditorState>({
+        pdfDocuments: {},
+        pages: [],
+        currentPageIndex: 0,
+        selectedTool: 'select',
+        isLoading: false,
+        isAppending: false,
+        fileName: '',
+        originalFile: null,
+    });
+
+    const [pdfDocumentObjs, setPdfDocumentObjs] = useState<Record<string, any>>({});
+
+    const processPDF = useCallback(async (file: File, sourceId: string) => {
+        const arrayBuffer = await file.arrayBuffer();
+
+        // Import PDF.js dynamically (client-side only)
+        const pdfjsLib = await import('pdfjs-dist');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdfDoc = await loadingTask.promise;
+
+        const numPages = pdfDoc.numPages;
+        const pagesPromises: Promise<PDFPage>[] = [];
+
+        // Load all pages and generate thumbnails
+        for (let i = 1; i <= numPages; i++) {
+            pagesPromises.push(
+                (async () => {
+                    const page = await pdfDoc.getPage(i);
+                    const viewport = page.getViewport({ scale: 1 });
+
+                    // Generate thumbnail
+                    const canvas = document.createElement('canvas');
+                    const scale = 180 / viewport.width;
+                    const scaledViewport = page.getViewport({ scale });
+
+                    canvas.width = scaledViewport.width;
+                    canvas.height = scaledViewport.height;
+
+                    const context = canvas.getContext('2d');
+                    if (context) {
+                        await page.render({
+                            canvasContext: context,
+                            viewport: scaledViewport,
+                            canvas: canvas,
+                        }).promise;
+                    }
+
+                    const thumbnail = canvas.toDataURL('image/png');
+
+                    return {
+                        id: `${sourceId}-${i}-${Math.random().toString(36).substr(2, 9)}`,
+                        sourceId,
+                        pageNumber: i,
+                        width: viewport.width,
+                        height: viewport.height,
+                        thumbnail,
+                        rotation: 0,
+                        elements: [],
+                    };
+                })()
+            );
+        }
+
+        const newPages = await Promise.all(pagesPromises);
+        return { arrayBuffer, pdfDoc, newPages };
+    }, []);
+
+    const loadPDF = useCallback(async (file: File) => {
+        setState(prev => ({ ...prev, isLoading: true }));
+
+        try {
+            const sourceId = `src-${Date.now()}`;
+            const { arrayBuffer, pdfDoc, newPages } = await processPDF(file, sourceId);
+
+            setPdfDocumentObjs({ [sourceId]: pdfDoc });
+            setState(prev => ({
+                ...prev,
+                pdfDocuments: { [sourceId]: arrayBuffer },
+                pages: newPages,
+                fileName: file.name,
+                isLoading: false,
+                isAppending: false,
+                currentPageIndex: 0,
+                originalFile: file,
+            }));
+        } catch (error: any) {
+            console.error('Failed to load PDF:', error);
+            setState(prev => ({ ...prev, isLoading: false }));
+            alert('Fehler beim Laden der PDF-Datei');
+        }
+    }, [processPDF]);
+
+    const appendPDF = useCallback(async (file: File) => {
+        setState(prev => ({ ...prev, isAppending: true }));
+
+        try {
+            const sourceId = `src-${Date.now()}`;
+            const { arrayBuffer, pdfDoc, newPages } = await processPDF(file, sourceId);
+
+            setPdfDocumentObjs(prev => ({ ...prev, [sourceId]: pdfDoc }));
+            setState(prev => ({
+                ...prev,
+                pdfDocuments: { ...prev.pdfDocuments, [sourceId]: arrayBuffer },
+                pages: [...prev.pages, ...newPages],
+                isAppending: false,
+            }));
+        } catch (error: any) {
+            console.error('Failed to append PDF:', error);
+            setState(prev => ({ ...prev, isAppending: false }));
+            alert('Fehler beim Hinzufügen der PDF-Datei');
+        }
+    }, [processPDF]);
+
+    const setCurrentPage = useCallback((index: number) => {
+        setState(prev => ({ ...prev, currentPageIndex: index }));
+    }, []);
+
+    const selectTool = useCallback((tool: EditorTool) => {
+        setState(prev => ({ ...prev, selectedTool: tool }));
+    }, []);
+
+    const deletePage = useCallback((pageId: string) => {
+        setState(prev => {
+            const newPages = prev.pages.filter(p => p.id !== pageId);
+
+            if (newPages.length === 0) {
+                setPdfDocumentObjs({});
+                return {
+                    pdfDocuments: {},
+                    pages: [],
+                    currentPageIndex: 0,
+                    selectedTool: 'select',
+                    isLoading: false,
+                    isAppending: false,
+                    fileName: '',
+                    originalFile: null,
+                };
+            }
+
+            const newIndex = Math.min(prev.currentPageIndex, newPages.length - 1);
+            return { ...prev, pages: newPages, currentPageIndex: Math.max(0, newIndex) };
+        });
+    }, []);
+
+    const movePage = useCallback((fromIndex: number, toIndex: number) => {
+        setState(prev => {
+            const newPages = [...prev.pages];
+            const [movedPage] = newPages.splice(fromIndex, 1);
+            newPages.splice(toIndex, 0, movedPage);
+            return { ...prev, pages: newPages };
+        });
+    }, []);
+
+    const addPage = useCallback(() => {
+        alert('Empty page addition not implemented for multi-PDF mode yet.');
+    }, []);
+
+    const rotatePage = useCallback((pageId: string) => {
+        setState(prev => ({
+            ...prev,
+            pages: prev.pages.map(p =>
+                p.id === pageId
+                    ? { ...p, rotation: (p.rotation + 90) % 360 }
+                    : p
+            )
+        }));
+    }, []);
+
+    const resetEditor = useCallback(() => {
+        setPdfDocumentObjs({});
+        setState({
+            pdfDocuments: {},
+            pages: [],
+            currentPageIndex: 0,
+            selectedTool: 'select',
+            isLoading: false,
+            isAppending: false,
+            fileName: '',
+            originalFile: null,
+        });
+    }, []);
+
+    const addElement = useCallback((pageId: string, element: EditorElement) => {
+        setState(prev => ({
+            ...prev,
+            pages: prev.pages.map(p => 
+                p.id === pageId 
+                    ? { ...p, elements: [...p.elements, element] }
+                    : p
+            )
+        }));
+    }, []);
+
+    const updateElement = useCallback((pageId: string, elementId: string, updates: Partial<EditorElement>) => {
+        setState(prev => ({
+            ...prev,
+            pages: prev.pages.map(p => 
+                p.id === pageId 
+                    ? { 
+                        ...p, 
+                        elements: p.elements.map(el => 
+                            el.id === elementId ? { ...el, ...updates } : el
+                        ) 
+                    }
+                    : p
+            )
+        }));
+    }, []);
+
+    const removeElement = useCallback((pageId: string, elementId: string) => {
+        setState(prev => ({
+            ...prev,
+            pages: prev.pages.map(p => 
+                p.id === pageId 
+                    ? { ...p, elements: p.elements.filter(el => el.id !== elementId) }
+                    : p
+            )
+        }));
+    }, []);
+
+    return {
+        ...state,
+        pdfDocumentObjs,
+        loadPDF,
+        appendPDF,
+        setCurrentPage,
+        selectTool,
+        deletePage,
+        movePage,
+        addPage,
+        rotatePage,
+        resetEditor,
+        addElement,
+        updateElement,
+        removeElement,
+    };
+}
