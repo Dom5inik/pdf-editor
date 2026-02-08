@@ -7,17 +7,6 @@
 A modern, fully client-side **PDF editor** built with Next.js and React.  
 The application enables users to preview, edit, annotate, reorder, and export PDF files directly in the browser — without any server-side PDF processing.
 
-## 📚 What I Learned From This Project
-
-Working on this project allowed me to:
-- Understand client-side PDF rendering and manipulation
-- Work with canvas-based rendering using PDF.js
-- Build complex interactive editors in React
-- Handle advanced mouse interactions (drag, scale, rotate)
-- Design a scalable state architecture using React Hooks
-- Create a fully functional app without server-side file processing
-- Improve UI/UX with responsive layouts and dark mode support
-
 ## 🔧 Tech Stack
 - **Next.js (App Router)**
 - **React 19**
@@ -49,3 +38,17 @@ Working on this project allowed me to:
 ```bash
 npm install
 npm run dev
+```
+
+## 📚 What I Learned From This Project
+
+Working on this project allowed me to:
+- Understand client-side PDF rendering and manipulation
+- Work with canvas-based rendering using PDF.js
+- Build complex interactive editors in React
+- Handle advanced mouse interactions (drag, scale, rotate)
+- Design a scalable state architecture using React Hooks
+- Create a fully functional app without server-side file processing
+- Improve UI/UX with responsive layouts and dark mode support
+
+
